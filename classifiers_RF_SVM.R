@@ -3,38 +3,38 @@ library(randomForest)
 library(caret)
 library(caTools)
 
-# Importa dados
+# Import data
 
 tear = read.delim("C:/Users/Lucas Ribeiro/Dropbox/MBA/tear.txt")
 
-# Coloca o identificador de cada linha, ou seja, a coluna contendo o nome dos genes  
-# como o nome de cada linha
+# Enter the identifier of each line, that is, the column containing the name of the genes
+# as the name of each line
 
 tear1 = tear %>% remove_rownames %>% column_to_rownames(var="Gene")
 
-#Transpõe os dados 
+#Transpose data
 
 df_tear = t(tear1)
 df_tear = as.data.frame(df_tear)
 
-#Cria uma coluna contendo o grupo ao qual cada linha pertence
+#Creates a column containing the group each row belongs to
 
 df_tear$groups = "CT"
 df_tear[28:54, "groups"] = "PD"
 
-# Fazer o conjunto de dados de treinamento e de teste
-# Onde o o conjunto de treinamento é de 70%. 
+# Create training and testing dataset
+# Where the training set is 70%.
 
 split = createDataPartition(df_tear$groups, p=0.7, list = FALSE)
-train = df_tear[split,] # dados de treinamento
-test = df_tear[-split,] # dados de teste
+train = df_tear[split,] # training set
+test = df_tear[-split,] # test set
 
-#tornar a coluna onde tem os grupos como variável do tipo categórica.
+#make the column where the groups are as a categorical variable.
 
 train$groups = as.factor(train$groups)
 test$groups = as.factor(test$groups)
 
-# Aplicando o Random Forest ao dados de treinamento
+# Applying Random Forest to training data
 
 set.seed(20230102)
 
@@ -45,17 +45,17 @@ classifier_RF = randomForest(x = train,
 
 classifier_RF
 
-# Prevendo os resultados do conjunto de treinamento
+#Predicting training set results
 
 pred_train = predict(classifier_RF, train)
 confusionMatrix(pred_train, train$groups)
 
-# Prevendo os resultados do conjunto de test
+# Predicting test set results
 
 pred_test = predict(classifier_RF, test)
 confusionMatrix(pred_test, test$groups)
 
-# Sugestão de parametros para melhoramento do algoritmo 
+# Suggestion of parameters to tune algorithm
 
 t = tuneRF(train[,-5], train[,5],
             stepFactor = 0.5,
@@ -65,7 +65,8 @@ t = tuneRF(train[,-5], train[,5],
             improve = 0.05)
 
 
-# Classificador com novos parâmetros 
+# Classifier with new parameters
+
 
 tuned_classifier_RF = randomForest(x = train,
                              y = train$groups,
@@ -80,34 +81,35 @@ tuned_classifier_RF
 pred_train_tuned = predict(tuned_classifier_RF, train)
 confusionMatrix(pred_train_tuned, train$groups)
 
-# Prevendo os resultados do conjunto de test após melhoramento
+# Predicting training set results after improvement
 
 pred_test_tuned = predict(tuned_classifier_RF, test)
 confusionMatrix(pred_test_tuned, test$groups)
 pred_test_tuned
 
-# Plotagem gráfica da taxa de erro do novo classificador
+# Graphical plot of the error rate of the new classifier
 
 error_RF = plot(tuned_classifier_RF)
 
-# Plotagem gráfica do número de nós para a árvore de decisão
+#Plot the number of nodes for the decision tree
 
 Node_tree = hist(treesize(tuned_classifier_RF),
       main = "No. of Nodes for the Trees",
       col = "green")
 
-#Variáveis mais importantes para a classificação do algoritmo
+#Most important variables for algorithm classification
 
 tbl_importante_RF = importance(tuned_classifier_RF)
 tbl_importante_RF
 head(tbl_importante_RF)
 
-# Plotagem do perfil de influência de cada gene no classificador
+# Plot of the influence profile of each gene in the classifier
 
 partialPlot(tuned_classifier_RF, train,SPB3, "PD")
 
-#plot com as variaveis mais importantes 
+#plot with the most important variables
 #varImpPlot(classifier_RF)
+
 
 ######################################################################
 ####################################################################
@@ -117,15 +119,15 @@ partialPlot(tuned_classifier_RF, train,SPB3, "PD")
 library(caret)
 library(tidyverse)		 
 
-# Cria um controle de treinamento dos dados 
-# utilizando método de validação cruzada de 5 vezes
+# Create a data training control
+# using 5-fold cross-validation method
 
 SVMtrain_control = trainControl(method = "cv", number = 5,
                                 classProbs = T,
                                 summaryFunction = twoClassSummary)
 
-# Cria o classificador utilizando SVM utilizando os dados de treinamento
-# utilizando o método linear
+# Create the classifier using SVM using the training data
+# using the linear method
 
 classifier_SVM = train(groups~., data = train,
                        method = "svmLinear", 
@@ -136,18 +138,17 @@ classifier_SVM = train(groups~., data = train,
 classifier_SVM
 classifier_SVM$results
 
-# Mostra a matriz de confusão para os dados de treinamento
+# Show the confusion matrix for the training data
 
 confusionMatrix(classifier_SVM)
 
-
-# Usa o classificador SVM treinado para predizer 
-# os dados de teste
+# Uses the trained SVM classifier to predict
+# the test data
 
 pred_SVM = predict(classifier_SVM, test)
 pred_SVM
 
-# Matriz de confusão para o conjunto de teste
+# Confusion matrix for the test set
 
 results_SVM = confusionMatrix(data = pred_SVM, test$groups)
 
